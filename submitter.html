@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Submitter - HQT Internal Cloud</title>
+    <link rel="stylesheet" href="drive.css" />
+  </head>
+  <body>
+    <header>
+      <img class="logo" src="subtract.png" alt="logo" />
+      HQT Internal Cloud — <span id="userDisplay"></span>
+      <button class="btn danger" onclick="logout()" style="float: right">
+        Logout
+      </button>
+    </header>
+    <main>
+      <div class="sidebar">
+        <h3>Folders</h3>
+        <div id="folderList"></div>
+        <div id="folderActions"></div>
+      </div>
+      <div class="content">
+        <div class="actions">
+          <div class="muted">
+            Current folder: <strong id="currentFolderLabel"></strong>
+          </div>
+          <div class="spacer"></div>
+          <button id="uploadBtn" class="btn">Upload</button>
+          <button id="deleteAllBtn" class="btn danger">Delete All</button>
+        </div>
+        <table id="fileTable">
+          <thead>
+            <tr>
+              <th>Filename</th>
+              <th>Type</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="preview">
+        <h3>Preview</h3>
+        <div id="previewBox" class="emptyPreview">Select a file to preview</div>
+      </div>
+    </main>
+    <footer>
+      © HQT 2025 — Internal Cloud <span id="resetBtnWrapper"></span>
+    </footer>
+    <input type="file" id="fileInput" multiple style="display: none" />
+    <script src="drive.js"></script>
+    <script>
+      if (user.role !== "submitter") {
+        alert("Access denied.");
+        location.href = "login.html";
+      }
+    </script>
+  </body>
+</html>
