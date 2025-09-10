@@ -1,0 +1,12 @@
+{
+  "name": "hqt-internal-cloud",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node api/state.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "jsonwebtoken": "^9.0.0"
+  }
+}
