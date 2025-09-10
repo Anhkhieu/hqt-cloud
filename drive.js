@@ -1,4 +1,5 @@
-const API = "http://localhost:3000/api"; // replace with Vercel API when deployed
+const API = "/api"; // Calls the Vercel serverless functions
+
 const token = localStorage.getItem("token");
 const user = JSON.parse(localStorage.getItem("user") || "{}");
 
@@ -274,3 +275,4 @@ function renderAll() {
 }
 
 fetchState();
+
