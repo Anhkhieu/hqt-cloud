@@ -211,23 +211,23 @@ function downloadFile(i) { const file = getCurrentFiles()[i]; if (file) window.o
 function previewFile(i) {
   const file = getCurrentFiles()[i];
   if (!file) return;
-  const isPDF = file.type?.includes("pdf") || /\.pdf$/i.test(file.name);
-  const isImg = file.type?.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg)$/i.test(file.name);
 
-  if (isPreviewer() && !isPDF && !isImg) {
-    els.previewBox.innerHTML = `<div class="emptyPreview">
-      Preview not supported for <strong>${file.name}</strong>.<br/>
-      <a class="btn" href="${file.url}" target="_blank">Download</a>
-    </div>`;
-    return;
+  const isPDF = file.type.includes("pdf") || /\.pdf$/i.test(file.name);
+  const isImg = file.type.startsWith("image/") || /\.(png|jpg|jpeg|gif|webp)$/i.test(file.name);
+
+  if (isPDF) {
+    els.previewBox.innerHTML = `<iframe src="${file.url}" style="width:100%;height:100%"></iframe>`;
+  } else if (isImg) {
+    els.previewBox.innerHTML = `<img src="${file.url}" alt="${file.name}" style="max-width:100%;max-height:100%">`;
+  } else {
+    els.previewBox.innerHTML = `
+      <div class="emptyPreview">
+        Preview not supported for <strong>${file.name}</strong><br/>
+        <a class="btn" href="${file.url}" target="_blank">Download</a>
+      </div>`;
   }
-
-  if (isPDF) els.previewBox.innerHTML = `<iframe src="${file.url}"></iframe>`;
-  else if (isImg) els.previewBox.innerHTML = `<img src="${file.url}" alt="${file.name}">`;
-  else els.previewBox.innerHTML = `<div class="emptyPreview">Preview not supported for <strong>${file.name}</strong>.<br/><a class="btn" href="${file.url}" target="_blank">Download</a></div>`;
-
-  els.previewBox.className = "";
 }
+
 
 function fileTypeKey(f) {
   const ext = (f.name || "").split(".").pop().toLowerCase();
