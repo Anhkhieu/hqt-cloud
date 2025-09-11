@@ -5,8 +5,9 @@
   "scripts": {
     "start": "node api/state.js"
   },
+ {
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
-    "jsonwebtoken": "^9.0.0"
+    "formidable": "^2.0.0"
   }
 }
