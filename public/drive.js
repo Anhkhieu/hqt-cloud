@@ -1,4 +1,10 @@
-const API = "https://YOUR_VERCEL_PROJECT.vercel.app/api"; // <-- replace with your deployed Vercel API URL
+// At top of drive.js
+const user = JSON.parse(localStorage.getItem("user") || "{}");
+document.getElementById("userDisplay").textContent = user.email
+  ? `${user.email} (${user.role})`
+  : "Unknown";
+
+const API = "https://hqt-cloud.vercel.app/api"; // <-- replace with your deployed Vercel API URL
 
 const token = localStorage.getItem("token");
 let user = null;
