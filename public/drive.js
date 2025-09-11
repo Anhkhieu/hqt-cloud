@@ -1,146 +1,169 @@
-// drive.js — full updated version
+// drive.js — role-aware, icon buttons restored
 
-const API = ""; // leave empty for relative calls on Vercel
-
-// Show user info
 const user = JSON.parse(localStorage.getItem("user") || "{}");
-document.getElementById("userDisplay").textContent = user.email
-  ? `${user.email} (${user.role})`
-  : "Unknown";
+const token = localStorage.getItem("token") || "";
+
+const els = {
+  userDisplay: document.getElementById("userDisplay"),
+  folderList: document.getElementById("folderList"),
+  folderActions: document.getElementById("folderActions"),
+  currentFolderLabel: document.getElementById("currentFolderLabel"),
+  tbody: document.querySelector("#fileTable tbody"),
+  previewBox: document.getElementById("previewBox"),
+  uploadBtn: document.getElementById("uploadBtn"),
+  deleteAllBtn: document.getElementById("deleteAllBtn"),
+  fileInput: document.getElementById("fileInput"),
+};
+
+els.userDisplay.textContent = `${user.email || "Unknown"} (${user.role})`;
 
 let currentFolder = "";
-const fileTableBody = document.querySelector("#fileTable tbody");
-const previewBox = document.getElementById("previewBox");
 
-document.getElementById("uploadBtn")?.addEventListener("click", () =>
-  document.getElementById("fileInput").click()
-);
-document.getElementById("fileInput")?.addEventListener("change", handleUpload);
-
-document.getElementById("deleteAllBtn")?.addEventListener("click", async () => {
-  if (!currentFolder) return alert("Select a folder first.");
-  if (!confirm("Delete ALL files in this folder?")) return;
-  await fetch(`/api/delete/${currentFolder}`, { method: "DELETE" });
-  fetchState();
-});
-
-// Logout
+/* ---------- Helpers ---------- */
+function isSubmitter() {
+  return user.role === "submitter";
+}
+function isPreviewer() {
+  return user.role === "previewer";
+}
 function logout() {
   localStorage.removeItem("token");
   localStorage.removeItem("user");
   location.href = "login.html";
 }
+window.logout = logout;
 
-// ===== Folder handling =====
+/* ---------- Folder UI ---------- */
 async function loadFolders() {
   const res = await fetch("/api/folders/list");
   const data = await res.json();
-  const folderList = document.getElementById("folderList");
-  const actions = document.getElementById("folderActions");
-  folderList.innerHTML = "";
-  actions.innerHTML = "";
+  els.folderList.innerHTML = "";
 
   data.folders.forEach((f) => {
-    const btn = document.createElement("button");
-    btn.className = "btn";
-    btn.textContent = f.name;
-    btn.onclick = () => {
+    const row = document.createElement("div");
+    row.className = "folder-row" + (f.name === currentFolder ? " active" : "");
+    row.onclick = () => {
       currentFolder = f.name;
-      document.getElementById("currentFolderLabel").textContent = currentFolder;
-      fetchState();
+      els.currentFolderLabel.textContent = currentFolder;
+      fetchFiles();
+      els.previewBox.textContent = "Select a file to preview";
+      els.previewBox.className = "emptyPreview";
     };
-    folderList.appendChild(btn);
+
+    const name = document.createElement("div");
+    name.textContent = f.name;
+
+    const actions = document.createElement("div");
+    actions.className = "folder-actions";
+
+    if (isSubmitter()) {
+      const renameBtn = document.createElement("button");
+      renameBtn.className = "iconbtn";
+      renameBtn.textContent = "✏️";
+      renameBtn.onclick = (e) => {
+        e.stopPropagation();
+        renameFolder(f.name);
+      };
+      actions.appendChild(renameBtn);
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "iconbtn";
+      delBtn.textContent = "🗑️";
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        deleteFolder(f.name);
+      };
+      actions.appendChild(delBtn);
+    }
+
+    row.appendChild(name);
+    row.appendChild(actions);
+    els.folderList.appendChild(row);
   });
 
-  // Create folder
-  const createBtn = document.createElement("button");
-  createBtn.className = "btn";
-  createBtn.textContent = "+ New Folder";
-  createBtn.onclick = async () => {
-    const name = prompt("Folder name?");
-    if (!name) return;
-    await fetch("/api/folders/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderName: name }),
-    });
-    loadFolders();
-  };
-  actions.appendChild(createBtn);
-
-  // Rename folder
-  const renameBtn = document.createElement("button");
-  renameBtn.className = "btn";
-  renameBtn.textContent = "Rename Folder";
-  renameBtn.onclick = async () => {
-    if (!currentFolder) return alert("Select a folder first.");
-    const newName = prompt("New folder name:", currentFolder);
-    if (!newName || newName === currentFolder) return;
-    await fetch("/api/folders/rename", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ oldName: currentFolder, newName }),
-    });
-    currentFolder = newName;
-    document.getElementById("currentFolderLabel").textContent = currentFolder;
-    loadFolders();
-  };
-  actions.appendChild(renameBtn);
-
-  // Delete folder
-  const deleteBtn = document.createElement("button");
-  deleteBtn.className = "btn danger";
-  deleteBtn.textContent = "Delete Folder";
-  deleteBtn.onclick = async () => {
-    if (!currentFolder) return alert("Select a folder first.");
-    if (!confirm(`Delete folder "${currentFolder}"?`)) return;
-    await fetch("/api/folders/delete", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ folderName: currentFolder }),
-    });
-    currentFolder = "";
-    document.getElementById("currentFolderLabel").textContent = "";
-    loadFolders();
-    fileTableBody.innerHTML = "";
-    previewBox.textContent = "Select a file to preview";
-  };
-  actions.appendChild(deleteBtn);
+  // Submitter-only "+ Folder" button
+  els.folderActions.innerHTML = isSubmitter()
+    ? `<button class="btn" onclick="addFolder()">+ Folder</button>`
+    : "";
 }
 
-// ===== File list & preview =====
-async function fetchState() {
+window.addFolder = async function () {
+  const name = prompt("Folder name?");
+  if (!name) return;
+  await fetch("/api/folders/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folderName: name }),
+  });
+  loadFolders();
+};
+
+async function renameFolder(oldName) {
+  const newName = prompt("Rename folder:", oldName);
+  if (!newName || newName === oldName) return;
+  await fetch("/api/folders/rename", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ oldName, newName }),
+  });
+  if (currentFolder === oldName) currentFolder = newName;
+  loadFolders();
+}
+
+async function deleteFolder(name) {
+  if (!confirm(`Delete folder "${name}"?`)) return;
+  await fetch("/api/folders/delete", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ folderName: name }),
+  });
+  if (currentFolder === name) currentFolder = "";
+  loadFolders();
+  els.tbody.innerHTML = "";
+}
+
+/* ---------- File listing & preview ---------- */
+async function fetchFiles() {
   if (!currentFolder) return;
   const res = await fetch(`/api/list/${currentFolder}`);
   const data = await res.json();
+  els.tbody.innerHTML = "";
 
-  fileTableBody.innerHTML = "";
-  data.files.forEach((f) => {
+  data.files.forEach((f, i) => {
     const tr = document.createElement("tr");
+    let actionBtns = "";
+
+    if (isSubmitter()) {
+      actionBtns = `
+        <button class="btn" onclick="previewFile('${f.url}','${f.type}')">Preview</button>
+        <button class="btn danger" onclick="deleteFile('${f.path}')">Delete</button>
+        <a class="btn" href="${f.url}" download>Download</a>`;
+    } else if (isPreviewer()) {
+      actionBtns = `
+        <button class="btn" onclick="previewFile('${f.url}','${f.type}')">Preview</button>
+        <a class="btn" href="${f.url}" download>Download</a>`;
+    }
+
     tr.innerHTML = `
       <td>${f.name}</td>
       <td>${f.type}</td>
-      <td>
-        <button class="btn" onclick="previewFile('${f.url}','${f.type}')">Preview</button>
-        <button class="btn danger" onclick="deleteFile('${f.path}')">Delete</button>
-        <a class="btn" href="${f.url}" download>Download</a>
-      </td>`;
-    fileTableBody.appendChild(tr);
+      <td>${actionBtns}</td>`;
+    els.tbody.appendChild(tr);
   });
 }
 
 window.previewFile = function (url, type) {
-  previewBox.classList.remove("emptyPreview");
+  els.previewBox.className = "";
   if (type.startsWith("image/")) {
-    previewBox.innerHTML = `<img src="${url}" style="max-width:100%">`;
+    els.previewBox.innerHTML = `<img src="${url}" style="max-width:100%">`;
   } else if (type === "application/pdf") {
-    previewBox.innerHTML = `<iframe src="${url}" width="100%" height="600px"></iframe>`;
+    els.previewBox.innerHTML = `<iframe src="${url}" width="100%" height="600"></iframe>`;
   } else if (type.startsWith("text/")) {
     fetch(url)
       .then((r) => r.text())
-      .then((txt) => (previewBox.innerHTML = `<pre>${txt}</pre>`));
+      .then((txt) => (els.previewBox.innerHTML = `<pre>${txt}</pre>`));
   } else {
-    previewBox.innerHTML = `<p>No inline preview. <a href="${url}" download>Download file</a></p>`;
+    els.previewBox.innerHTML = `<p>No inline preview. <a href="${url}" download>Download</a></p>`;
   }
 };
 
@@ -151,50 +174,48 @@ window.deleteFile = async function (path) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ filePath: path }),
   });
-  fetchState();
+  fetchFiles();
 };
 
-// ===== Upload with progress =====
-async function handleUpload(e) {
-  if (!currentFolder) return alert("Select a folder first.");
+/* ---------- Upload with progress ---------- */
+els.uploadBtn?.addEventListener("click", () => {
+  if (!isSubmitter()) return alert("Submitter only");
+  if (!currentFolder) return alert("Select a folder first");
+  els.fileInput.click();
+});
+
+els.fileInput?.addEventListener("change", async (e) => {
   const files = e.target.files;
-  if (!files.length) return;
-
+  if (!files.length || !currentFolder) return;
   for (const file of files) {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${file.name}</td>
-      <td>${file.type}</td>
-      <td><progress value="0" max="100"></progress></td>`;
-    fileTableBody.appendChild(row);
-    const progressEl = row.querySelector("progress");
-
-    await uploadFile(file, progressEl);
+    await uploadFile(file);
   }
-  fetchState();
-}
+  fetchFiles();
+  e.target.value = "";
+});
 
-async function uploadFile(file, progressEl) {
+async function uploadFile(file) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/upload/${currentFolder}`);
     const formData = new FormData();
     formData.append("file", file);
 
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) {
-        progressEl.value = (e.loaded / e.total) * 100;
-      }
-    });
+    // Optional progress row
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${file.name}</td><td>${file.type}</td>
+      <td><progress value="0" max="100"></progress></td>`;
+    els.tbody.appendChild(tr);
+    const progressEl = tr.querySelector("progress");
 
-    xhr.onload = () => {
-      if (xhr.status === 200) resolve();
-      else reject();
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) progressEl.value = (e.loaded / e.total) * 100;
     };
+    xhr.onload = () => (xhr.status === 200 ? resolve() : reject(xhr.status));
     xhr.onerror = reject;
     xhr.send(formData);
   });
 }
 
-// ===== Init =====
+/* ---------- Init ---------- */
 loadFolders();
