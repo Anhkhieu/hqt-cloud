@@ -1,5 +1,5 @@
 {
-  "name": "hqt-internal-cloud",
+  "name": "hqt-cloud",
   "version": "1.0.0",
   "private": true,
   "scripts": {
