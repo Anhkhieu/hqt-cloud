@@ -148,16 +148,8 @@ img.logo {
 }
 
 /* Folder list rows */
-.folder-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-}
+.folder-row { display:flex; justify-content:space-between; cursor:pointer; padding:4px; }
+ 
 
 .folder-row.active {
   background: #02807b;
@@ -169,14 +161,8 @@ img.logo {
 }
 
 /* Icon buttons in folder rows */
-.iconbtn {
-  background: rgba(0, 0, 0, 0.15);
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 6px;
-}
+.iconbtn { background:none; border:none; cursor:pointer; margin-left:6px; }
+
 
 .iconbtn:hover {
   background: rgba(0, 0, 0, 0.25);
